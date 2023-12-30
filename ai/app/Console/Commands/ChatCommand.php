@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\AI\Chat;
 use Illuminate\Console\Command;
+use function Laravel\Prompts\{text, info, spin};
 
 class ChatCommand extends Command
 {
@@ -12,7 +13,7 @@ class ChatCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'chat';
+    protected $signature = 'chat {--system=}';
 
     /**
      * The console command description.
@@ -26,20 +27,28 @@ class ChatCommand extends Command
      */
     public function handle()
     {
-        $question = $this->ask('What is your question for AI? ');
-
         $chat = new Chat();
-        $response = $chat->send($question);
 
-        $this->info($response);
-
-        while ($this->ask('Do you want to respond?')) {
-            $question = $this->ask('What is wour response?');
-            $response = $chat->send($question);
-
-            $this->info($response);
+        if($this->option('system')){
+            $chat->systemMessage($this->option('system'));
         }
 
-        $this->info('Conversation over.');
+        $question = text(
+            label: 'What is your question for AI?',
+            required: true
+        );
+
+
+        $response = spin(fn() => $chat->send($question), 'Sending request...');
+
+        info($response);
+
+        while ($question = text('Do you want to respond?')) {
+            $response = spin(fn() => $chat->send($question), 'Sending request...');
+
+            info($response);
+        }
+
+        info('Conversation over.');
     }
 }
