@@ -1,10 +1,10 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\AI\Chat;
+use App\AI\Assistant;
 
 Route::get('/sillier', function () {
-    $chat = new Chat();
+    $chat = new Assistant();
     $poem = $chat->systemMessage('You are a poetic assistant, skilled in explaining complex programming concepts with creative flair.')
         ->send('Compose a poem that explains the concept of recursion in programming.');
 
@@ -14,8 +14,26 @@ Route::get('/sillier', function () {
 });
 
 
-Route::get('/', function (){
+Route::get('/roast', function (){
     return view('roast');
+});
+
+Route::get('/', function (){
+    return view('image', [
+        'messages' => session('messages', [])
+    ]);
+});
+
+Route::post('/image', function (){
+    $attributes = request()->validate([
+        'description' => ['required', 'string', 'min:3']
+    ]);
+
+    $assistant = new Assistant(session('messages', []));
+
+    $assistant->visualize($attributes['description']);
+    session(['messages' => $assistant->messages()]);
+    return redirect('/');
 });
 
 Route::post('/roast', function (){
@@ -27,7 +45,7 @@ Route::post('/roast', function (){
 
     $prompt = "Please roast {$attributes['topic']} in a sarcastic tone.";
 
-    $chat = new Chat();
+    $chat = new Assistant();
     $mp3 = $chat->send(
         message: $prompt,
         speech: true
